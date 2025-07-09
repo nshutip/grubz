@@ -1,49 +1,67 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
+import { addToWaitlist } from "../api/waitlist";
 
 export function GrubzLandingPage() {
   const [darkMode, setDarkMode] = useState(() => {
-    // Check if we're on the client side and if user has a saved preference
     if (typeof window !== "undefined") {
       const saved = localStorage.getItem("darkMode");
       return saved ? JSON.parse(saved) : false;
     }
-    return false; // Default to light mode on server
+    return false;
   });
 
+  const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  
   useEffect(() => {
-    // Override system preference completely
     if (darkMode) {
       document.documentElement.classList.add("dark");
       document.documentElement.style.colorScheme = "dark";
-      // Force dark mode by setting data attribute
       document.documentElement.setAttribute("data-theme", "dark");
     } else {
       document.documentElement.classList.remove("dark");
       document.documentElement.style.colorScheme = "light";
-      // Force light mode by setting data attribute
       document.documentElement.setAttribute("data-theme", "light");
     }
-    
-    // Save preference to localStorage (only on client side)
+
     if (typeof window !== "undefined") {
       localStorage.setItem("darkMode", JSON.stringify(darkMode));
     }
   }, [darkMode]);
 
+  const handleJoinWaitlist = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email) return alert("Please enter an email.");
+    setLoading(true);
+
+    try {
+      const data = await addToWaitlist(email);
+      alert("✅ Successfully joined the waitlist!");
+      setEmail(""); // reset input
+    } catch (error: any) {
+      alert("❌ Failed to join: " + (error.message || "Unknown error"));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <main className="bg-[#F9F9F9] dark:bg-[#121212] text-[#212121] dark:text-white font-sans transition-colors duration-300">
-      {/* Toggle */}
+      {/* Toggle Theme Button */}
       <div className="absolute top-4 right-4 z-50">
         <button
           onClick={() => setDarkMode(!darkMode)}
-          className="px-3 py-2 rounded bg-[#FF8D00] text-white font-semibold hover:bg-orange-600 transition"
+          className="p-2 rounded-full bg-gray-200/80 dark:bg-gray-700/80 text-gray-600 dark:text-gray-300 hover:bg-gray-300/80 dark:hover:bg-gray-600/80 transition-all duration-200 backdrop-blur-sm border border-gray-300/50 dark:border-gray-600/50"
+          title={darkMode ? "Switch to Light Mode" : "Switch to Dark Mode"}
         >
-          {darkMode ? "Light Mode" : "Dark Mode"}
+          {darkMode ? "☀️" : "🌙"}
         </button>
       </div>
 
-      {/* Hero Section - Revamped & Interactive */}
+      {/* Hero Section */}
       <section className="min-h-screen flex flex-col justify-center items-center text-center px-4 bg-[#FFF5EB] dark:bg-[#2B2B2B] relative overflow-hidden">
         <motion.img
           src="/grubz-high-logo-t2.png"
@@ -53,14 +71,6 @@ export function GrubzLandingPage() {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.8, delay: 0.2 }}
         />
-        {/* <motion.h1
-          className="text-5xl md:text-7xl font-extrabold text-[#F9F9F9] mb-2 tracking-tight z-10"
-          initial={{ y: -50, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ duration: 0.6, delay: 0.4 }}
-        >
-          Imagine This
-        </motion.h1> */}
         <motion.h2
           className="text-2xl md:text-4xl font-semibold text-[#00BFA6] mb-6 z-10"
           initial={{ y: 50, opacity: 0 }}
@@ -83,23 +93,24 @@ export function GrubzLandingPage() {
           animate={{ opacity: 1 }}
           transition={{ duration: 0.6, delay: 1 }}
         >
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="bg-[#FF8D00] text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:bg-orange-600 transition"
-          >
-            🚀 Join the Waitlist
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="border border-[#FF8D00] text-[#FF8D00] px-6 py-3 rounded-lg font-semibold hover:bg-orange-100 dark:hover:bg-[#3A3A3A] transition"
-          >
-            ✨ Get Early Access
-          </motion.button>
-        </motion.div>
-
-        {/* Soft background shape for personality */}
+            <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="bg-[#FF8D00] text-white px-6 py-3 rounded-lg font-semibold shadow-md hover:bg-orange-600 transition"
+                onClick={() => {
+                formRef.current?.scrollIntoView({ behavior: "smooth" });
+                }}
+            >
+                🚀 Join the Waitlist
+            </motion.button>
+            <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className="border border-[#FF8D00] text-[#FF8D00] px-6 py-3 rounded-lg font-semibold hover:bg-orange-100 dark:hover:bg-[#3A3A3A] transition"
+            >
+                ✨ Get Early Access
+            </motion.button>
+          </motion.div>
         <div className="absolute -bottom-20 -left-20 w-[150%] h-96 bg-[#FF8D00]/10 rounded-full blur-3xl z-0"></div>
       </section>
 
@@ -150,14 +161,25 @@ export function GrubzLandingPage() {
       <section className="py-12 px-4 text-center bg-white dark:bg-[#1E1E1E]">
         <h3 className="text-2xl font-semibold mb-2">Be the first to know when Grubz drops</h3>
         <p className="mb-4">Join our early access list & get exclusive launch deals!</p>
-        <form className="flex flex-col sm:flex-row justify-center items-center gap-4 max-w-xl mx-auto">
+        <form
+          ref={formRef}
+          onSubmit={handleJoinWaitlist}
+          className="flex flex-col sm:flex-row justify-center items-center gap-4 max-w-xl mx-auto"
+        >
           <input
             type="email"
             placeholder="Enter your email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             className="px-4 py-3 w-full sm:w-2/3 rounded-lg border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-[#FF8D00]"
+            required
           />
-          <button className="bg-[#FF8D00] text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition">
-            Join Waitlist
+          <button
+            type="submit"
+            disabled={loading}
+            className="bg-[#FF8D00] text-white px-6 py-3 rounded-lg font-semibold hover:bg-orange-600 transition disabled:opacity-50"
+          >
+            {loading ? "Joining..." : "Join Waitlist"}
           </button>
         </form>
       </section>
